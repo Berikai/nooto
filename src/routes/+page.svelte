@@ -2,6 +2,17 @@
     import { browser } from "$app/environment";
     import { marked } from "marked";
 
+    let showNotification = false;
+    let notificationTimeout;
+
+    function showSavedNotification() {
+        showNotification = true;
+        clearTimeout(notificationTimeout);
+        notificationTimeout = setTimeout(() => {
+            showNotification = false;
+        }, 1500);
+    }
+
     // Notes here!
     let notes = {
         "Welcome to Nooto": {
@@ -50,10 +61,9 @@
             try {
                 localStorage.setItem("notes", JSON.stringify(notes));
                 console.log("Notes and selectedNotes saved successfully.");
-                alert("Notes saved successfully!");
+                showSavedNotification();
             } catch (e) {
                 console.error("Failed to save notes or selectedNotes:", e);
-                alert("Failed to save notes. Please try again.");
             }
         }
     }
@@ -234,6 +244,7 @@
             <div contenteditable="true" class="prose max-w-none text-gray-700 dark:text-gray-300" on:focusin={e => e.target.innerHTML = note.content.replaceAll('\n', '<br>')} on:focusout={e => {
                 note.content = e.target.innerHTML.replaceAll('<br>', '\n').replaceAll('&gt;', '>').replaceAll('&lt;', '<');
                 e.target.innerHTML = marked.parse(note.content);
+                saveNotes();
                 console.log("Note content updated:", note.content);
             }}>
                 {@html marked.parse(note.content)}
@@ -546,3 +557,10 @@
         </div>
     </div>
 </div>
+{#if showNotification}
+    <div class="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 opacity-50">
+        <div class="bg-green-500 text-white px-6 py-2 rounded shadow-lg font-semibold">
+            Data saved!
+        </div>
+    </div>
+{/if}
