@@ -2,6 +2,8 @@
 
 is a minimal note-taking app
 
+<img src="image.png" width="369" alt="nooto">
+
 I want to keep small notes in a fast, simple and efficent way to study Japanese. Existing solutions are overkill for me, so I wanted to make my own note taking app.
 
 > Code is really messy and needs refactoring!
