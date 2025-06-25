@@ -59,9 +59,9 @@ To edit a note, click on the note content.
 
 You can create new groups and notes in the directory view.`},{title:"Buttons",content:`The bottom bar buttons usages:
 - <span style='color:#2563eb'>Add Notebook</span>
-- <span style='color:#6366f1'>Import Data</span>
-- <span style='color:#22c55e'>Save Data</span>
-- <span style='color:#ef4444'>Reset Data</span>
+- <span style='color:#6366f1'>Import/Export Data</span>
+- <span style='color:#22c55e'>Save Data Locally</span>
+- <span style='color:#ef4444'>Reset Local Data</span>
 - <span style='color:#999999'>Dark Mode</span>
 - <span style='color:#eab308'>Multiple Notes Mode</span>`},{title:"Get Started",content:`> You were born ready!
 
