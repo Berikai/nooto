@@ -4,10 +4,9 @@
 
     let cloudStatus = "";
 
-    if (browser && localStorage.getItem("nootoCloudAPI") === "") {
-        localStorage.removeItem("nootoCloudAPI");
-        cloudStatus = "";
-    } else cloudStatus = "animate-pulse";
+    if (browser && localStorage.getItem("nootoCloudAPI")) {
+        cloudStatus = "animate-pulse";
+    }
 
     let showNotification = false;
     let notificationTimeout;
