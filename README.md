@@ -11,7 +11,7 @@ I want to keep small notes in a fast, simple and efficent way to study Japanese.
 ## TODO
 
 - [ ] Refactor code
-- [ ] Add cloud-save integration
+- [x] Add cloud-save integration
 - [ ] Improve Dark Mode
 
 ---

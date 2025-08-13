@@ -2,6 +2,8 @@
     import { browser } from "$app/environment";
     import { marked } from "marked";
 
+    let cloudStatus = "";
+
     let showNotification = false;
     let notificationTimeout;
 
@@ -19,7 +21,7 @@
             "Introduction": [
                 { title: "Nooto", content: "is a minimal note-taking app" },
                 { title: "Usage", content: "Click on a notebook to expand it, then click on a group to see its notes. You can select notes for viewing or editing.\n\nTo edit a note, click on the note content.\n\nYou can create new groups and notes in the directory view." },
-                { title: "Buttons", content: "The bottom bar buttons usages:\n- <span style='color:#2563eb'>Add Notebook</span>\n- <span style='color:#6366f1'>Import/Export Data</span>\n- <span style='color:#22c55e'>Save Data Locally</span>\n- <span style='color:#ef4444'>Reset Local Data</span>\n- <span style='color:#999999'>Dark Mode</span>\n- <span style='color:#eab308'>Multiple Notes Mode</span>" },
+                { title: "Buttons", content: "The bottom bar buttons usages:\n- <span style='color:#2563eb'>Add Notebook</span>\n- <span style='color:#6366f1'>Fetch/Edit Data</span>\n- <span style='color:#51ed8a'>Save Data Locally (+ Cloud, if enabled)</span>\n- <span style='color:#8aed51'>Enable Cloud Save</span>\n- <span style='color:#999999'>Dark Mode</span>\n- <span style='color:#eab308'>Multiple Notes Mode</span>\n\nCloud icon will do a pulse animation while it's enabled.\n\nNotes will be saved locally automatically, click save button for cloud save explicitly." },
                 { title: "Get Started", content: "> You were born ready!\n\nClick on <span style='color:#2563eb;font-size:24px;'>+</span> to create your first notebook. Then, click on the other <span style='color:#2563eb;font-size:24px;'>+</span> button next to newly created notebook in the <ins>directory view</ins>. Lastly, clicking <span style='color:#eab308;font-size:24px;'>+</span> button next to the newly created group will create <span style='color:#22c55e'>your first note</span>! Click on the content to edit it. \n\n Well done! You've created your first note." }
             ],
             "Examples": [
@@ -56,7 +58,7 @@
         }
     }
 
-    function saveNotes() {
+    async function saveNotes() {
         if (browser) {
             try {
                 localStorage.setItem("notes", JSON.stringify(notes));
@@ -241,10 +243,10 @@
                 </div>
             </div>
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div contenteditable="true" class="prose max-w-none text-gray-700 dark:text-gray-300" on:focusin={e => e.target.innerHTML = note.content.replaceAll('\n', '<br>')} on:focusout={e => {
+            <div contenteditable="true" class="prose max-w-none text-gray-700 dark:text-gray-300" on:focusin={e => e.target.innerHTML = note.content.replaceAll('\n', '<br>')} on:focusout={async e => {
                 note.content = e.target.innerHTML.replaceAll('<br>', '\n').replaceAll('&gt;', '>').replaceAll('&lt;', '<');
                 e.target.innerHTML = marked.parse(note.content);
-                saveNotes();
+                await saveNotes();
                 console.log("Note content updated:", note.content);
             }}>
                 {@html marked.parse(note.content)}
@@ -492,9 +494,32 @@
         <div class="flex justify-start m-1">
             <button
                 class="flex space-x-1 justify-start items-center px-1 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors text-xs pl-2 pr-2"
-                on:click={() => {
+                on:click={async () => {
+                    let cloudNotes = "";
+                    if (localStorage.getItem("nootoCloudAPI")) {
+                        const api = localStorage.getItem("nootoCloudAPI");
+                        try {
+                            const url = api.split('?');
+                            const response = await fetch(url[0] + 'pull' + `?${url[1]}`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                }
+                            });
+                            if (response.ok) {
+                                cloudNotes = JSON.stringify(await response.json());
+                                alert("Notes imported from cloud successfully!");
+                            } else {
+                                alert("Failed to fetch notes from cloud.");
+                            }
+                        } catch (e) {
+                            alert("Error fetching notes from cloud.");
+                            console.error(e);
+                        }
+                    }
+
                     const currentJSON = JSON.stringify(notes);
-                    const input = prompt("Paste or edit your notes JSON below:", currentJSON);
+                    const input = localStorage.getItem("nootoCloudAPI") ? prompt("Do you want to update your local notes with the cloud-fetched notes below?\nYou can edit as you like.", cloudNotes) : prompt("Paste or edit your notes JSON below:", currentJSON);
                     if (input !== null) {
                         try {
                             notes = JSON.parse(input);
@@ -511,23 +536,45 @@
         </div>    
         <div class="flex justify-start m-1">
             <button
-                class="flex space-x-1 justify-start items-center px-1 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-colors text-xs pl-2 pr-2"
-                on:click={saveNotes}
+                class="flex space-x-1 justify-start items-center px-1 py-1 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors text-xs pl-2 pr-2"
+                on:click={async () => {
+                    saveNotes()
+
+                    try {
+                        const api = localStorage.getItem("nootoCloudAPI");
+                        if (api) {
+                            const url = api.split('?');
+                            const saveCloud = await fetch(url[0] + 'push' + `?${url[1]}`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify(notes)
+                            });
+                            if (saveCloud.ok) {
+                                alert("Notes saved to cloud successfully!");
+                            }
+                        }
+                    } catch (e_) {
+                        alert("Failed to save to cloud.");
+                    }
+                }}
             >
                 <span class="material-icons text-xs">save</span>
             </button>
         </div>   
         <div class="flex justify-start m-1">
             <button
-            class="flex space-x-1 justify-start items-center px-1 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-xs pl-2 pr-2"
+            class="flex space-x-1 justify-start items-center px-1 py-1 bg-lime-500 text-white rounded hover:bg-lime-600 transition-colors text-xs pl-2 pr-2"
             on:click={() => {
-                if (confirm("Are you sure you want to reset all notes? This cannot be undone.")) {
-                localStorage.removeItem("notes");
-                location.reload();
-                }
+                localStorage.setItem("nootoCloudAPI", prompt("Enter Nooto Cloud API URL:\n(Leave empty and press OK to disable cloud if its enabled.)", localStorage.getItem("nootoCloudAPI") ?? "https://example.nooto.cloud.api/?key=nooto") ?? (localStorage.getItem("nootoCloudAPI") ?? ""));
+                if (localStorage.getItem("nootoCloudAPI") === "") {
+                    localStorage.removeItem("nootoCloudAPI");
+                    cloudStatus = "";
+                } else cloudStatus = "animate-pulse";
             }}
             >
-            <span class="material-icons text-xs">restart_alt</span>
+            <span key={cloudStatus} class="material-icons text-xs {cloudStatus}">cloud</span>
             </button>
         </div>
         <div class="flex justify-start m-1">
