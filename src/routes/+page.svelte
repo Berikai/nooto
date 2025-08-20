@@ -287,6 +287,54 @@
                     {:else}
                         <span class="font-semibold">{notebook}</span>
                         <div class="flex space-x-1 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                        {#if Object.keys(notes).indexOf(notebook) > 0}
+                            <button
+                                class="material-icons text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                on:click|stopPropagation={() => {
+                                    // Move notebook (folder) up
+                                    const notebookNames = Object.keys(notes);
+                                    const idx = notebookNames.indexOf(notebook);
+                                    if (idx > 0) {
+                                        const newNotes = {};
+                                        for (let i = 0; i < notebookNames.length; i++) {
+                                            if (i === idx - 1) {
+                                                newNotes[notebookNames[idx]] = notes[notebookNames[idx]];
+                                            } else if (i === idx) {
+                                                newNotes[notebookNames[idx - 1]] = notes[notebookNames[idx - 1]];
+                                            } else {
+                                                newNotes[notebookNames[i]] = notes[notebookNames[i]];
+                                            }
+                                        }
+                                        notes = newNotes;
+                                    }
+                                }}
+                                title="Move Up"
+                            >keyboard_arrow_up</button>
+                        {/if}
+                        {#if Object.keys(notes).indexOf(notebook) < Object.keys(notes).length - 1}
+                            <button
+                                class="material-icons text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                on:click|stopPropagation={() => {
+                                    // Move notebook (folder) down
+                                    const notebookNames = Object.keys(notes);
+                                    const idx = notebookNames.indexOf(notebook);
+                                    if (idx < notebookNames.length - 1) {
+                                        const newNotes = {};
+                                        for (let i = 0; i < notebookNames.length; i++) {
+                                            if (i === idx) {
+                                                newNotes[notebookNames[idx + 1]] = notes[notebookNames[idx + 1]];
+                                            } else if (i === idx + 1) {
+                                                newNotes[notebookNames[idx]] = notes[notebookNames[idx]];
+                                            } else {
+                                                newNotes[notebookNames[i]] = notes[notebookNames[i]];
+                                            }
+                                        }
+                                        notes = newNotes;
+                                    }
+                                }}
+                                title="Move Down"
+                            >keyboard_arrow_down</button>
+                        {/if}
                             <button class="material-icons text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
                                 on:click|stopPropagation={() => {
                                     let baseName = "New Group";
@@ -373,6 +421,60 @@
                                 {:else}
                                 <span>{group}</span>
                                 <div class="flex space-x-1 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {#if Object.keys(notes[notebook]).indexOf(group) > 0}
+                                        <button
+                                            class="material-icons text-gray-400 hover:text-yellow-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                            on:click|stopPropagation={() => {
+                                                // Move group up
+                                                const groupNames = Object.keys(notes[notebook]);
+                                                const idx = groupNames.indexOf(group);
+                                                if (idx > 0) {
+                                                    const newGroups = {};
+                                                    for (let i = 0; i < groupNames.length; i++) {
+                                                        if (i === idx - 1) {
+                                                            newGroups[groupNames[idx]] = notes[notebook][groupNames[idx]];
+                                                        } else if (i === idx) {
+                                                            newGroups[groupNames[idx - 1]] = notes[notebook][groupNames[idx - 1]];
+                                                        } else {
+                                                            newGroups[groupNames[i]] = notes[notebook][groupNames[i]];
+                                                        }
+                                                    }
+                                                    notes = {
+                                                        ...notes,
+                                                        [notebook]: newGroups
+                                                    };
+                                                }
+                                            }}
+                                            title="Move Up"
+                                        >keyboard_arrow_up</button>
+                                    {/if}
+                                    {#if Object.keys(notes[notebook]).indexOf(group) < Object.keys(notes[notebook]).length - 1}
+                                        <button
+                                            class="material-icons text-gray-400 hover:text-yellow-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                            on:click|stopPropagation={() => {
+                                                // Move group down
+                                                const groupNames = Object.keys(notes[notebook]);
+                                                const idx = groupNames.indexOf(group);
+                                                if (idx < groupNames.length - 1) {
+                                                    const newGroups = {};
+                                                    for (let i = 0; i < groupNames.length; i++) {
+                                                        if (i === idx) {
+                                                            newGroups[groupNames[idx + 1]] = notes[notebook][groupNames[idx + 1]];
+                                                        } else if (i === idx + 1) {
+                                                            newGroups[groupNames[idx]] = notes[notebook][groupNames[idx]];
+                                                        } else {
+                                                            newGroups[groupNames[i]] = notes[notebook][groupNames[i]];
+                                                        }
+                                                    }
+                                                    notes = {
+                                                        ...notes,
+                                                        [notebook]: newGroups
+                                                    };
+                                                }
+                                            }}
+                                            title="Move Down"
+                                        >keyboard_arrow_down</button>
+                                    {/if}
                                     <button class="material-icons text-gray-400 hover:text-yellow-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
                                         on:click|stopPropagation={() => {
                                             let baseName = "New Note";
@@ -443,6 +545,48 @@
                                             {:else}
                                                 <span>{note.title}</span>
                                                 <div class="flex space-x-1 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    {#if notes[notebook][group].indexOf(note) > 0}
+                                                        <button
+                                                            class="material-icons text-gray-400 hover:text-green-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                                            on:click|stopPropagation={() => {
+                                                                // Move note up
+                                                                const idx = notes[notebook][group].indexOf(note);
+                                                                if (idx > 0) {
+                                                                    const arr = [...notes[notebook][group]];
+                                                                    [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
+                                                                    notes = {
+                                                                        ...notes,
+                                                                        [notebook]: {
+                                                                            ...notes[notebook],
+                                                                            [group]: arr
+                                                                        }
+                                                                    };
+                                                                }
+                                                            }}
+                                                            title="Move Up"
+                                                        >keyboard_arrow_up</button>
+                                                    {/if}
+                                                    {#if notes[notebook][group].indexOf(note) < notes[notebook][group].length - 1}
+                                                        <button
+                                                            class="material-icons text-gray-400 hover:text-green-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                                            on:click|stopPropagation={() => {
+                                                                // Move note down
+                                                                const arr = [...notes[notebook][group]];
+                                                                const idx = arr.indexOf(note);
+                                                                if (idx < arr.length - 1) {
+                                                                    [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
+                                                                    notes = {
+                                                                        ...notes,
+                                                                        [notebook]: {
+                                                                            ...notes[notebook],
+                                                                            [group]: arr
+                                                                        }
+                                                                    };
+                                                                }
+                                                            }}
+                                                            title="Move Down"
+                                                        >keyboard_arrow_down</button>
+                                                    {/if}
                                                     <button class="material-icons text-gray-400 hover:text-green-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
                                                         on:click|stopPropagation={() => startEditNote(note)}
                                                         title="Edit Note"
