@@ -1,6 +1,7 @@
 <script>
     import { browser } from "$app/environment";
     import { marked } from "marked";
+        import { onMount } from "svelte";
 
     let cloudStatus = "";
 
@@ -36,6 +37,17 @@
         }
     };
 
+    // UI Mode
+    let expandUI = true; 
+
+    const updateHeights = () => {
+        const h = document.getElementById('nooto-menu') ? document.getElementById('nooto-menu').clientHeight : window.innerHeight;
+        Array.from(document.getElementsByClassName('nooto-text')).forEach(element => {
+            element.style = 'min-height: ' + h + 'px;';
+            if (!expandUI || window.innerWidth < 868) element.removeAttribute('style');
+        });
+    };
+
     // Selected notes
     // This will hold the notes that are selected for viewing
     let selectedNotes = [];
@@ -48,9 +60,16 @@
         ];
     }
 
+    if (browser && localStorage.getItem("expandUI") === "false") {
+        expandUI = false;
+    }
+
+    if (browser && localStorage.getItem("multipleNotes") === "true") {
+        multipleNotes = true;
+    }
+
     if(browser && localStorage.getItem("dark") === "true") {
         document.documentElement.classList.add("dark");
-        multipleNotes = localStorage.getItem("multipleNotes") === "true";
     }
 
     if (browser && localStorage.getItem("notes")) {
@@ -91,6 +110,8 @@
     function toggleNotebook(name) {
         openNotebooks[name] = !openNotebooks[name];
         openNotebooks = { [name]: openNotebooks[name] };
+
+        setTimeout(() => updateHeights(), 0); // hack to change height after svelte updates UI
     }
 
     
@@ -98,6 +119,8 @@
         const key = `${notebook}:${group}`;
         openGroups[key] = !openGroups[key];
         openGroups = { ...openGroups };
+
+        setTimeout(() => updateHeights(), 0); // hack to change height after svelte updates UI
     }
 
     function selectNote(note) {
@@ -105,6 +128,8 @@
         if (!selectedNotes.includes(note)) {
             selectedNotes = multipleNotes ? [...selectedNotes, note] : [note];
         }
+
+        setTimeout(() => updateHeights(), 0); // hack to change height after svelte updates UI
     }
 
     function removeNote(note) {
@@ -220,9 +245,9 @@
     }
 </script>
 
-<div class="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 dark:text-gray-200 p-8">
+<div class="flex {expandUI ? 'max-[868px]:flex-col flex-row-reverse' : 'flex-col'} items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 dark:text-gray-200 p-8">
     {#if selectedNotes.length > 0}
-    <div class="m-4 space-y-4 w-full max-w-sm min-h-full">
+    <div class="nooto-text m-4 space-y-4 w-full {expandUI ? 'max-[868px]:max-w-sm max-[868px]:min-h-full max-w-4xl' : 'max-w-sm min-h-full'}">
         {#each selectedNotes as note (note)}
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 overflow-auto">
             <div class="flex justify-between items-center mb-2">
@@ -259,496 +284,512 @@
         {/each}
     </div>
     {/if}
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow w-full max-w-sm p-6 overflow-auto">
-        <ul class="space-y-2">
-            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-            {#if Object.keys(notes).length < 1}
-                <li class="text-gray-500 text-sm text-center">No notebooks available.<br><br>Click "Add Notebook" to create one.</li>
-            {/if}
-            {#each Object.entries(notes) as [notebook, groups]}
-                <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <div id="nooto-menu" class="{expandUI ? 'sticky max-[868px]:static' : ''} top-10 bottom-10 flex flex-col items-center justify-center">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow w-full max-w-sm p-6 overflow-auto">
+            <ul class="space-y-2">
                 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-                <li class="flex items-center space-x-2 cursor-pointer select-none group" on:click={() => toggleNotebook(notebook)}>
-                    <span class="material-icons text-blue-500">
-                        {openNotebooks[notebook] ? 'expand_more' : 'chevron_right'}
-                    </span>
-                    <span class="material-icons text-blue-500">folder</span>
-                    {#if renamingNotebook === notebook && !renamingGroup}
-                        <!-- svelte-ignore a11y_autofocus -->
-                        <input
-                            class="border rounded px-1 py-0.5 text-sm"
-                            bind:value={renamingValue}
-                            on:click|stopPropagation
-                            on:keydown={(e) => { if (e.key === 'Enter') confirmRename(); else if (e.key === 'Escape') cancelRename(); }}
-                            autofocus
-                        />
-                        <button class="material-icons text-green-500" on:click|stopPropagation={confirmRename}>check</button>
-                        <button class="material-icons text-red-500" on:click|stopPropagation={cancelRename}>close</button>
-                    {:else}
-                        <span class="font-semibold">{notebook}</span>
-                        <div class="flex space-x-1 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-                        {#if Object.keys(notes).indexOf(notebook) > 0}
-                            <button
-                                class="material-icons text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                                on:click|stopPropagation={() => {
-                                    // Move notebook (folder) up
-                                    const notebookNames = Object.keys(notes);
-                                    const idx = notebookNames.indexOf(notebook);
-                                    if (idx > 0) {
-                                        const newNotes = {};
-                                        for (let i = 0; i < notebookNames.length; i++) {
-                                            if (i === idx - 1) {
-                                                newNotes[notebookNames[idx]] = notes[notebookNames[idx]];
-                                            } else if (i === idx) {
-                                                newNotes[notebookNames[idx - 1]] = notes[notebookNames[idx - 1]];
-                                            } else {
-                                                newNotes[notebookNames[i]] = notes[notebookNames[i]];
-                                            }
-                                        }
-                                        notes = newNotes;
-                                    }
-                                }}
-                                title="Move Up"
-                            >keyboard_arrow_up</button>
-                        {/if}
-                        {#if Object.keys(notes).indexOf(notebook) < Object.keys(notes).length - 1}
-                            <button
-                                class="material-icons text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                                on:click|stopPropagation={() => {
-                                    // Move notebook (folder) down
-                                    const notebookNames = Object.keys(notes);
-                                    const idx = notebookNames.indexOf(notebook);
-                                    if (idx < notebookNames.length - 1) {
-                                        const newNotes = {};
-                                        for (let i = 0; i < notebookNames.length; i++) {
-                                            if (i === idx) {
-                                                newNotes[notebookNames[idx + 1]] = notes[notebookNames[idx + 1]];
-                                            } else if (i === idx + 1) {
-                                                newNotes[notebookNames[idx]] = notes[notebookNames[idx]];
-                                            } else {
-                                                newNotes[notebookNames[i]] = notes[notebookNames[i]];
-                                            }
-                                        }
-                                        notes = newNotes;
-                                    }
-                                }}
-                                title="Move Down"
-                            >keyboard_arrow_down</button>
-                        {/if}
-                            <button class="material-icons text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                                on:click|stopPropagation={() => {
-                                    let baseName = "New Group";
-                                    let name = baseName;
-                                    let i = 1;
-                                    while (notes[notebook][name]) {
-                                        name = `${baseName} ${i++}`;
-                                    }
-                                    notes = {
-                                        ...notes,
-                                        [notebook]: {
-                                            ...notes[notebook],
-                                            [name]: []
-                                        }
-                                    };
-                                    openGroups = {
-                                        ...openGroups,
-                                        [`${notebook}:${name}`]: true
-                                    };
-                                }}
-                                title="Add Group"
-                            >add</button>
-                            <button class="material-icons text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                                on:click|stopPropagation={() => startRenameNotebook(notebook)}
-                                title="Rename Notebook"
-                            >edit</button>
-                            <button class="material-icons text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                                on:click|stopPropagation={() => {
-                                    if (confirm(`Are you sure you want to delete the notebook "${notebook}"?`)) {
-                                        // Remove notebook
-                                        const { [notebook]: _, ...rest } = notes;
-                                        notes = rest;
-
-                                        // Remove open state for notebook
-                                        const { [notebook]: __, ...restOpen } = openNotebooks;
-                                        openNotebooks = restOpen;
-
-                                        // Remove open state for groups in this notebook
-                                        const newOpenGroups = {};
-                                        for (const key in openGroups) {
-                                            if (!key.startsWith(`${notebook}:`)) {
-                                                newOpenGroups[key] = openGroups[key];
-                                            }
-                                        }
-                                        openGroups = newOpenGroups;
-
-                                        // Remove any selected notes from this notebook
-                                        selectedNotes = selectedNotes.filter(note => {
-                                            for (const group of Object.values(notes)) {
-                                                for (const groupNotes of Object.values(group)) {
-                                                    if (groupNotes.includes(note)) return true;
+                {#if Object.keys(notes).length < 1}
+                    <li class="text-gray-500 text-sm text-center">No notebooks available.<br><br>Click "Add Notebook" to create one.</li>
+                {/if}
+                {#each Object.entries(notes) as [notebook, groups]}
+                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+                    <li class="flex items-center space-x-2 cursor-pointer select-none group" on:click={() => toggleNotebook(notebook)}>
+                        <span class="material-icons text-blue-500">
+                            {openNotebooks[notebook] ? 'expand_more' : 'chevron_right'}
+                        </span>
+                        <span class="material-icons text-blue-500">folder</span>
+                        {#if renamingNotebook === notebook && !renamingGroup}
+                            <!-- svelte-ignore a11y_autofocus -->
+                            <input
+                                class="border rounded px-1 py-0.5 text-sm"
+                                bind:value={renamingValue}
+                                on:click|stopPropagation
+                                on:keydown={(e) => { if (e.key === 'Enter') confirmRename(); else if (e.key === 'Escape') cancelRename(); }}
+                                autofocus
+                            />
+                            <button class="material-icons text-green-500" on:click|stopPropagation={confirmRename}>check</button>
+                            <button class="material-icons text-red-500" on:click|stopPropagation={cancelRename}>close</button>
+                        {:else}
+                            <span class="font-semibold">{notebook}</span>
+                            <div class="flex space-x-1 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                            {#if Object.keys(notes).indexOf(notebook) > 0}
+                                <button
+                                    class="material-icons text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                    on:click|stopPropagation={() => {
+                                        // Move notebook (folder) up
+                                        const notebookNames = Object.keys(notes);
+                                        const idx = notebookNames.indexOf(notebook);
+                                        if (idx > 0) {
+                                            const newNotes = {};
+                                            for (let i = 0; i < notebookNames.length; i++) {
+                                                if (i === idx - 1) {
+                                                    newNotes[notebookNames[idx]] = notes[notebookNames[idx]];
+                                                } else if (i === idx) {
+                                                    newNotes[notebookNames[idx - 1]] = notes[notebookNames[idx - 1]];
+                                                } else {
+                                                    newNotes[notebookNames[i]] = notes[notebookNames[i]];
                                                 }
                                             }
-                                            return false;
-                                        });
-                                    }
-                                }}
-                                title="Remove Notebook"
-                            >delete</button>
-                        </div>
-                    {/if}
-                </li>
-                {#if openNotebooks[notebook]}
-                    <ul class="ml-6 space-y-2">
-                        {#each Object.entries(groups) as [group, notesArr]}
-                            <!-- svelte-ignore a11y_click_events_have_key_events -->
-                            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-                            <li class="flex items-center space-x-2 cursor-pointer select-none group" on:click={() => toggleGroup(notebook, group)}>
-                                <span class="material-icons text-yellow-500">
-                                    {openGroups[`${notebook}:${group}`] ? 'expand_more' : 'chevron_right'}
-                                </span>
-                                <span class="material-icons text-yellow-500">folder</span>
-                                {#if renamingNotebook === notebook && renamingGroup === group}
-                                    <!-- svelte-ignore a11y_autofocus -->
-                                    <input
-                                        class="border rounded px-1 py-0.5 text-sm"
-                                        bind:value={renamingValue}
-                                        on:click|stopPropagation
-                                        on:keydown={(e) => { if (e.key === 'Enter') confirmRename(); else if (e.key === 'Escape') cancelRename(); }}
-                                        autofocus
-                                    />
-                                    <button class="material-icons text-green-500" on:click|stopPropagation={confirmRename}>check</button>
-                                    <button class="material-icons text-red-500" on:click|stopPropagation={cancelRename}>close</button>
-                                {:else}
-                                <span>{group}</span>
-                                <div class="flex space-x-1 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-                                    {#if Object.keys(notes[notebook]).indexOf(group) > 0}
-                                        <button
-                                            class="material-icons text-gray-400 hover:text-yellow-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                                            on:click|stopPropagation={() => {
-                                                // Move group up
-                                                const groupNames = Object.keys(notes[notebook]);
-                                                const idx = groupNames.indexOf(group);
-                                                if (idx > 0) {
-                                                    const newGroups = {};
-                                                    for (let i = 0; i < groupNames.length; i++) {
-                                                        if (i === idx - 1) {
-                                                            newGroups[groupNames[idx]] = notes[notebook][groupNames[idx]];
-                                                        } else if (i === idx) {
-                                                            newGroups[groupNames[idx - 1]] = notes[notebook][groupNames[idx - 1]];
-                                                        } else {
-                                                            newGroups[groupNames[i]] = notes[notebook][groupNames[i]];
-                                                        }
+                                            notes = newNotes;
+                                        }
+                                    }}
+                                    title="Move Up"
+                                >keyboard_arrow_up</button>
+                            {/if}
+                            {#if Object.keys(notes).indexOf(notebook) < Object.keys(notes).length - 1}
+                                <button
+                                    class="material-icons text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                    on:click|stopPropagation={() => {
+                                        // Move notebook (folder) down
+                                        const notebookNames = Object.keys(notes);
+                                        const idx = notebookNames.indexOf(notebook);
+                                        if (idx < notebookNames.length - 1) {
+                                            const newNotes = {};
+                                            for (let i = 0; i < notebookNames.length; i++) {
+                                                if (i === idx) {
+                                                    newNotes[notebookNames[idx + 1]] = notes[notebookNames[idx + 1]];
+                                                } else if (i === idx + 1) {
+                                                    newNotes[notebookNames[idx]] = notes[notebookNames[idx]];
+                                                } else {
+                                                    newNotes[notebookNames[i]] = notes[notebookNames[i]];
+                                                }
+                                            }
+                                            notes = newNotes;
+                                        }
+                                    }}
+                                    title="Move Down"
+                                >keyboard_arrow_down</button>
+                            {/if}
+                                <button class="material-icons text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                    on:click|stopPropagation={() => {
+                                        let baseName = "New Group";
+                                        let name = baseName;
+                                        let i = 1;
+                                        while (notes[notebook][name]) {
+                                            name = `${baseName} ${i++}`;
+                                        }
+                                        notes = {
+                                            ...notes,
+                                            [notebook]: {
+                                                ...notes[notebook],
+                                                [name]: []
+                                            }
+                                        };
+                                        openGroups = {
+                                            ...openGroups,
+                                            [`${notebook}:${name}`]: true
+                                        };
+                                    }}
+                                    title="Add Group"
+                                >add</button>
+                                <button class="material-icons text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                    on:click|stopPropagation={() => startRenameNotebook(notebook)}
+                                    title="Rename Notebook"
+                                >edit</button>
+                                <button class="material-icons text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                    on:click|stopPropagation={() => {
+                                        if (confirm(`Are you sure you want to delete the notebook "${notebook}"?`)) {
+                                            // Remove notebook
+                                            const { [notebook]: _, ...rest } = notes;
+                                            notes = rest;
+
+                                            // Remove open state for notebook
+                                            const { [notebook]: __, ...restOpen } = openNotebooks;
+                                            openNotebooks = restOpen;
+
+                                            // Remove open state for groups in this notebook
+                                            const newOpenGroups = {};
+                                            for (const key in openGroups) {
+                                                if (!key.startsWith(`${notebook}:`)) {
+                                                    newOpenGroups[key] = openGroups[key];
+                                                }
+                                            }
+                                            openGroups = newOpenGroups;
+
+                                            // Remove any selected notes from this notebook
+                                            selectedNotes = selectedNotes.filter(note => {
+                                                for (const group of Object.values(notes)) {
+                                                    for (const groupNotes of Object.values(group)) {
+                                                        if (groupNotes.includes(note)) return true;
                                                     }
-                                                    notes = {
-                                                        ...notes,
-                                                        [notebook]: newGroups
-                                                    };
                                                 }
-                                            }}
-                                            title="Move Up"
-                                        >keyboard_arrow_up</button>
-                                    {/if}
-                                    {#if Object.keys(notes[notebook]).indexOf(group) < Object.keys(notes[notebook]).length - 1}
-                                        <button
-                                            class="material-icons text-gray-400 hover:text-yellow-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                                            on:click|stopPropagation={() => {
-                                                // Move group down
-                                                const groupNames = Object.keys(notes[notebook]);
-                                                const idx = groupNames.indexOf(group);
-                                                if (idx < groupNames.length - 1) {
-                                                    const newGroups = {};
-                                                    for (let i = 0; i < groupNames.length; i++) {
-                                                        if (i === idx) {
-                                                            newGroups[groupNames[idx + 1]] = notes[notebook][groupNames[idx + 1]];
-                                                        } else if (i === idx + 1) {
-                                                            newGroups[groupNames[idx]] = notes[notebook][groupNames[idx]];
-                                                        } else {
-                                                            newGroups[groupNames[i]] = notes[notebook][groupNames[i]];
+                                                return false;
+                                            });
+                                        }
+                                    }}
+                                    title="Remove Notebook"
+                                >delete</button>
+                            </div>
+                        {/if}
+                    </li>
+                    {#if openNotebooks[notebook]}
+                        <ul class="ml-6 space-y-2">
+                            {#each Object.entries(groups) as [group, notesArr]}
+                                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                                <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+                                <li class="flex items-center space-x-2 cursor-pointer select-none group" on:click={() => toggleGroup(notebook, group)}>
+                                    <span class="material-icons text-yellow-500">
+                                        {openGroups[`${notebook}:${group}`] ? 'expand_more' : 'chevron_right'}
+                                    </span>
+                                    <span class="material-icons text-yellow-500">folder</span>
+                                    {#if renamingNotebook === notebook && renamingGroup === group}
+                                        <!-- svelte-ignore a11y_autofocus -->
+                                        <input
+                                            class="border rounded px-1 py-0.5 text-sm"
+                                            bind:value={renamingValue}
+                                            on:click|stopPropagation
+                                            on:keydown={(e) => { if (e.key === 'Enter') confirmRename(); else if (e.key === 'Escape') cancelRename(); }}
+                                            autofocus
+                                        />
+                                        <button class="material-icons text-green-500" on:click|stopPropagation={confirmRename}>check</button>
+                                        <button class="material-icons text-red-500" on:click|stopPropagation={cancelRename}>close</button>
+                                    {:else}
+                                    <span>{group}</span>
+                                    <div class="flex space-x-1 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {#if Object.keys(notes[notebook]).indexOf(group) > 0}
+                                            <button
+                                                class="material-icons text-gray-400 hover:text-yellow-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                                on:click|stopPropagation={() => {
+                                                    // Move group up
+                                                    const groupNames = Object.keys(notes[notebook]);
+                                                    const idx = groupNames.indexOf(group);
+                                                    if (idx > 0) {
+                                                        const newGroups = {};
+                                                        for (let i = 0; i < groupNames.length; i++) {
+                                                            if (i === idx - 1) {
+                                                                newGroups[groupNames[idx]] = notes[notebook][groupNames[idx]];
+                                                            } else if (i === idx) {
+                                                                newGroups[groupNames[idx - 1]] = notes[notebook][groupNames[idx - 1]];
+                                                            } else {
+                                                                newGroups[groupNames[i]] = notes[notebook][groupNames[i]];
+                                                            }
                                                         }
+                                                        notes = {
+                                                            ...notes,
+                                                            [notebook]: newGroups
+                                                        };
                                                     }
-                                                    notes = {
-                                                        ...notes,
-                                                        [notebook]: newGroups
-                                                    };
+                                                }}
+                                                title="Move Up"
+                                            >keyboard_arrow_up</button>
+                                        {/if}
+                                        {#if Object.keys(notes[notebook]).indexOf(group) < Object.keys(notes[notebook]).length - 1}
+                                            <button
+                                                class="material-icons text-gray-400 hover:text-yellow-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                                on:click|stopPropagation={() => {
+                                                    // Move group down
+                                                    const groupNames = Object.keys(notes[notebook]);
+                                                    const idx = groupNames.indexOf(group);
+                                                    if (idx < groupNames.length - 1) {
+                                                        const newGroups = {};
+                                                        for (let i = 0; i < groupNames.length; i++) {
+                                                            if (i === idx) {
+                                                                newGroups[groupNames[idx + 1]] = notes[notebook][groupNames[idx + 1]];
+                                                            } else if (i === idx + 1) {
+                                                                newGroups[groupNames[idx]] = notes[notebook][groupNames[idx]];
+                                                            } else {
+                                                                newGroups[groupNames[i]] = notes[notebook][groupNames[i]];
+                                                            }
+                                                        }
+                                                        notes = {
+                                                            ...notes,
+                                                            [notebook]: newGroups
+                                                        };
+                                                    }
+                                                }}
+                                                title="Move Down"
+                                            >keyboard_arrow_down</button>
+                                        {/if}
+                                        <button class="material-icons text-gray-400 hover:text-yellow-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                            on:click|stopPropagation={() => {
+                                                let baseName = "New Note";
+                                                let name = baseName;
+                                                let i = 1;
+                                                while (notes[notebook][group].some(n => n.title === name)) {
+                                                    name = `${baseName} ${i++}`;
                                                 }
-                                            }}
-                                            title="Move Down"
-                                        >keyboard_arrow_down</button>
-                                    {/if}
-                                    <button class="material-icons text-gray-400 hover:text-yellow-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                                        on:click|stopPropagation={() => {
-                                            let baseName = "New Note";
-                                            let name = baseName;
-                                            let i = 1;
-                                            while (notes[notebook][group].some(n => n.title === name)) {
-                                                name = `${baseName} ${i++}`;
-                                            }
-                                            notes = {
-                                                ...notes,
-                                                [notebook]: {
-                                                    ...notes[notebook],
-                                                    [group]: [
-                                                        ...notes[notebook][group],
-                                                        { title: name, content: "Type your note here..." }
-                                                    ]
-                                                }
-                                            };
-                                        }}
-                                        title="Add Note"
-                                    >add</button>
-                                    <button class="material-icons text-gray-400 hover:text-yellow-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                                        on:click|stopPropagation={() => startRenameGroup(notebook, group)}
-                                        title="Rename Group"
-                                    >edit</button>
-                                    <button
-                                        class="material-icons text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                                        on:click|stopPropagation={() => {
-                                            if (confirm(`Are you sure you want to delete the group "${group}"?`)) {
-                                                // Remove group from notebook
-                                                const { [group]: _, ...restGroups } = notes[notebook];
                                                 notes = {
                                                     ...notes,
-                                                    [notebook]: restGroups
+                                                    [notebook]: {
+                                                        ...notes[notebook],
+                                                        [group]: [
+                                                            ...notes[notebook][group],
+                                                            { title: name, content: "Type your note here..." }
+                                                        ]
+                                                    }
                                                 };
+                                            }}
+                                            title="Add Note"
+                                        >add</button>
+                                        <button class="material-icons text-gray-400 hover:text-yellow-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                            on:click|stopPropagation={() => startRenameGroup(notebook, group)}
+                                            title="Rename Group"
+                                        >edit</button>
+                                        <button
+                                            class="material-icons text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                            on:click|stopPropagation={() => {
+                                                if (confirm(`Are you sure you want to delete the group "${group}"?`)) {
+                                                    // Remove group from notebook
+                                                    const { [group]: _, ...restGroups } = notes[notebook];
+                                                    notes = {
+                                                        ...notes,
+                                                        [notebook]: restGroups
+                                                    };
 
-                                                // Remove open state for this group
-                                                const { [`${notebook}:${group}`]: __, ...restOpenGroups } = openGroups;
-                                                openGroups = restOpenGroups;
+                                                    // Remove open state for this group
+                                                    const { [`${notebook}:${group}`]: __, ...restOpenGroups } = openGroups;
+                                                    openGroups = restOpenGroups;
 
-                                                // Remove any selected notes from this group
-                                                selectedNotes = selectedNotes.filter(note => !notesArr.includes(note));
-                                            }
-                                        }}
-                                        title="Remove Group"
-                                    >delete</button>
-                                </div>
-                                {/if}
-                            </li>
-                            {#if openGroups[`${notebook}:${group}`]}
-                                <ul class="ml-6 space-y-2">
-                                    {#each notesArr as note}
-                                        <!-- svelte-ignore a11y_click_events_have_key_events -->
-                                        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-                                        <li class="flex items-center space-x-2 cursor-pointer group" on:click|stopPropagation={() => selectNote(note)}>
-                                            <span class="material-icons text-green-500">insert_drive_file</span>
-                                            {#if editingNote === note}
-                                                <!-- svelte-ignore a11y_autofocus -->
-                                                <input
-                                                    class="border rounded px-1 py-0.5 text-sm"
-                                                    bind:value={editingNoteTitle}
-                                                    on:click|stopPropagation
-                                                    on:keydown={(e) => { if (e.key === 'Enter') confirmEditNote(); else if (e.key === 'Escape') cancelEditNote(); }}
-                                                    autofocus
-                                                />
-                                                <button class="material-icons text-green-500" on:click|stopPropagation={confirmEditNote}>check</button>
-                                                <button class="material-icons text-red-500" on:click|stopPropagation={cancelEditNote}>close</button>
-                                            {:else}
-                                                <span>{note.title}</span>
-                                                <div class="flex space-x-1 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    {#if notes[notebook][group].indexOf(note) > 0}
-                                                        <button
-                                                            class="material-icons text-gray-400 hover:text-green-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                                                            on:click|stopPropagation={() => {
-                                                                // Move note up
-                                                                const idx = notes[notebook][group].indexOf(note);
-                                                                if (idx > 0) {
-                                                                    const arr = [...notes[notebook][group]];
-                                                                    [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
-                                                                    notes = {
-                                                                        ...notes,
-                                                                        [notebook]: {
-                                                                            ...notes[notebook],
-                                                                            [group]: arr
-                                                                        }
-                                                                    };
-                                                                }
-                                                            }}
-                                                            title="Move Up"
-                                                        >keyboard_arrow_up</button>
-                                                    {/if}
-                                                    {#if notes[notebook][group].indexOf(note) < notes[notebook][group].length - 1}
-                                                        <button
-                                                            class="material-icons text-gray-400 hover:text-green-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                                                            on:click|stopPropagation={() => {
-                                                                // Move note down
-                                                                const arr = [...notes[notebook][group]];
-                                                                const idx = arr.indexOf(note);
-                                                                if (idx < arr.length - 1) {
-                                                                    [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
-                                                                    notes = {
-                                                                        ...notes,
-                                                                        [notebook]: {
-                                                                            ...notes[notebook],
-                                                                            [group]: arr
-                                                                        }
-                                                                    };
-                                                                }
-                                                            }}
-                                                            title="Move Down"
-                                                        >keyboard_arrow_down</button>
-                                                    {/if}
-                                                    <button class="material-icons text-gray-400 hover:text-green-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                                                        on:click|stopPropagation={() => startEditNote(note)}
-                                                        title="Edit Note"
-                                                    >edit</button>
-                                                    <button
-                                                        class="material-icons text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                                                        on:click|stopPropagation={() => {
-                                                            if (confirm(`Are you sure you want to delete the note "${note.title}"?`)) {
-                                                                // Remove note from group
-                                                                notes = {
-                                                                    ...notes,
-                                                                    [notebook]: {
-                                                                        ...notes[notebook],
-                                                                        [group]: notes[notebook][group].filter(n => n !== note)
+                                                    // Remove any selected notes from this group
+                                                    selectedNotes = selectedNotes.filter(note => !notesArr.includes(note));
+                                                }
+                                            }}
+                                            title="Remove Group"
+                                        >delete</button>
+                                    </div>
+                                    {/if}
+                                </li>
+                                {#if openGroups[`${notebook}:${group}`]}
+                                    <ul class="ml-6 space-y-2">
+                                        {#each notesArr as note}
+                                            <!-- svelte-ignore a11y_click_events_have_key_events -->
+                                            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+                                            <li class="flex items-center space-x-2 cursor-pointer group" on:click|stopPropagation={() => selectNote(note)}>
+                                                <span class="material-icons text-green-500">insert_drive_file</span>
+                                                {#if editingNote === note}
+                                                    <!-- svelte-ignore a11y_autofocus -->
+                                                    <input
+                                                        class="border rounded px-1 py-0.5 text-sm"
+                                                        bind:value={editingNoteTitle}
+                                                        on:click|stopPropagation
+                                                        on:keydown={(e) => { if (e.key === 'Enter') confirmEditNote(); else if (e.key === 'Escape') cancelEditNote(); }}
+                                                        autofocus
+                                                    />
+                                                    <button class="material-icons text-green-500" on:click|stopPropagation={confirmEditNote}>check</button>
+                                                    <button class="material-icons text-red-500" on:click|stopPropagation={cancelEditNote}>close</button>
+                                                {:else}
+                                                    <span>{note.title}</span>
+                                                    <div class="flex space-x-1 ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        {#if notes[notebook][group].indexOf(note) > 0}
+                                                            <button
+                                                                class="material-icons text-gray-400 hover:text-green-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                                                on:click|stopPropagation={() => {
+                                                                    // Move note up
+                                                                    const idx = notes[notebook][group].indexOf(note);
+                                                                    if (idx > 0) {
+                                                                        const arr = [...notes[notebook][group]];
+                                                                        [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
+                                                                        notes = {
+                                                                            ...notes,
+                                                                            [notebook]: {
+                                                                                ...notes[notebook],
+                                                                                [group]: arr
+                                                                            }
+                                                                        };
                                                                     }
-                                                                };
-                                                                // Remove from selectedNotes if present
-                                                                selectedNotes = selectedNotes.filter(n => n !== note);
-                                                            }
-                                                        }}
-                                                        title="Remove Note"
-                                                    >delete</button>
-                                                </div>
-                                            {/if}
-                                        </li>
-                                    {/each}
-                                </ul>
-                            {/if}
-                        {/each}
-                    </ul>
-                {/if}
-            {/each}
-        </ul>
-    </div>
-    <div class="flex flex-row justify-evenly bg-white dark:bg-gray-800 rounded-lg shadow w-full max-w-sm p-2 m-4 pl-3 pr-3 overflow-auto">
-        <div class="flex justify-start m-1">
-            <button
-                class="flex space-x-1 justify-start items-center px-1 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-xs pl-2 pr-2"
-                on:click={() => {
-                    let baseName = "New Notebook";
-                    let name = baseName;
-                    let i = 1;
-                    while (notes[name]) {
-                        name = `${baseName} ${i++}`;
-                    }
-                    notes = { ...notes, [name]: {} };
-                    openNotebooks = { ...openNotebooks, [name]: true };
-                }}
-            >
-                <span class="material-icons text-sm">add</span>
-            </button>
+                                                                }}
+                                                                title="Move Up"
+                                                            >keyboard_arrow_up</button>
+                                                        {/if}
+                                                        {#if notes[notebook][group].indexOf(note) < notes[notebook][group].length - 1}
+                                                            <button
+                                                                class="material-icons text-gray-400 hover:text-green-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                                                on:click|stopPropagation={() => {
+                                                                    // Move note down
+                                                                    const arr = [...notes[notebook][group]];
+                                                                    const idx = arr.indexOf(note);
+                                                                    if (idx < arr.length - 1) {
+                                                                        [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
+                                                                        notes = {
+                                                                            ...notes,
+                                                                            [notebook]: {
+                                                                                ...notes[notebook],
+                                                                                [group]: arr
+                                                                            }
+                                                                        };
+                                                                    }
+                                                                }}
+                                                                title="Move Down"
+                                                            >keyboard_arrow_down</button>
+                                                        {/if}
+                                                        <button class="material-icons text-gray-400 hover:text-green-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                                            on:click|stopPropagation={() => startEditNote(note)}
+                                                            title="Edit Note"
+                                                        >edit</button>
+                                                        <button
+                                                            class="material-icons text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                                            on:click|stopPropagation={() => {
+                                                                if (confirm(`Are you sure you want to delete the note "${note.title}"?`)) {
+                                                                    // Remove note from group
+                                                                    notes = {
+                                                                        ...notes,
+                                                                        [notebook]: {
+                                                                            ...notes[notebook],
+                                                                            [group]: notes[notebook][group].filter(n => n !== note)
+                                                                        }
+                                                                    };
+                                                                    // Remove from selectedNotes if present
+                                                                    selectedNotes = selectedNotes.filter(n => n !== note);
+                                                                }
+                                                            }}
+                                                            title="Remove Note"
+                                                        >delete</button>
+                                                    </div>
+                                                {/if}
+                                            </li>
+                                        {/each}
+                                    </ul>
+                                {/if}
+                            {/each}
+                        </ul>
+                    {/if}
+                {/each}
+            </ul>
         </div>
-        <div class="flex justify-start m-1">
-            <button
-                class="flex space-x-1 justify-start items-center px-1 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors text-xs pl-2 pr-2"
-                on:click={async () => {
-                    let cloudNotes = "";
-                    if (localStorage.getItem("nootoCloudAPI")) {
-                        const api = localStorage.getItem("nootoCloudAPI");
-                        try {
-                            const url = api.split('?');
-                            const response = await fetch(url[0] + 'pull' + `?${url[1]}`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
+        <div class="flex flex-row justify-evenly bg-white dark:bg-gray-800 rounded-lg shadow w-full max-w-sm p-2 m-4 pl-3 pr-3 overflow-hidden">
+            <div class="flex justify-start m-1">
+                <button
+                    class="flex space-x-1 justify-start items-center px-1 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-xs pl-2 pr-2"
+                    on:click={() => {
+                        let baseName = "New Notebook";
+                        let name = baseName;
+                        let i = 1;
+                        while (notes[name]) {
+                            name = `${baseName} ${i++}`;
+                        }
+                        notes = { ...notes, [name]: {} };
+                        openNotebooks = { ...openNotebooks, [name]: true };
+                    }}
+                >
+                    <span class="material-icons text-sm">add</span>
+                </button>
+            </div>
+            <div class="flex justify-start m-1">
+                <button
+                    class="flex space-x-1 justify-start items-center px-1 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600 transition-colors text-xs pl-2 pr-2"
+                    on:click={async () => {
+                        let cloudNotes = "";
+                        if (localStorage.getItem("nootoCloudAPI")) {
+                            const api = localStorage.getItem("nootoCloudAPI");
+                            try {
+                                const url = api.split('?');
+                                const response = await fetch(url[0] + 'pull' + `?${url[1]}`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    }
+                                });
+                                if (response.ok) {
+                                    cloudNotes = JSON.stringify(await response.json());
+                                    alert("Notes imported from cloud successfully!");
+                                } else {
+                                    alert("Failed to fetch notes from cloud.");
                                 }
-                            });
-                            if (response.ok) {
-                                cloudNotes = JSON.stringify(await response.json());
-                                alert("Notes imported from cloud successfully!");
-                            } else {
-                                alert("Failed to fetch notes from cloud.");
+                            } catch (e) {
+                                alert("Error fetching notes from cloud.");
+                                console.error(e);
                             }
-                        } catch (e) {
-                            alert("Error fetching notes from cloud.");
-                            console.error(e);
                         }
-                    }
 
-                    const currentJSON = JSON.stringify(notes);
-                    const input = localStorage.getItem("nootoCloudAPI") ? prompt("Do you want to update your local notes with the cloud-fetched notes below?\nYou can edit as you like.", cloudNotes) : prompt("Paste or edit your notes JSON below:", currentJSON);
-                    if (input !== null) {
+                        const currentJSON = JSON.stringify(notes);
+                        const input = localStorage.getItem("nootoCloudAPI") ? prompt("Do you want to update your local notes with the cloud-fetched notes below?\nYou can edit as you like.", cloudNotes) : prompt("Paste or edit your notes JSON below:", currentJSON);
+                        if (input !== null) {
+                            try {
+                                notes = JSON.parse(input);
+                                localStorage.setItem("notes", input);
+                                alert("Notes imported successfully!");
+                            } catch (e) {
+                                alert("Invalid JSON data.");
+                            }
+                        }
+                    }}
+                >
+                    <span class="material-icons text-xs">upload</span>
+                </button>
+            </div>    
+            <div class="flex justify-start m-1">
+                <button
+                    class="flex space-x-1 justify-start items-center px-1 py-1 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors text-xs pl-2 pr-2"
+                    on:click={async () => {
+                        saveNotes()
+
                         try {
-                            notes = JSON.parse(input);
-                            localStorage.setItem("notes", input);
-                            alert("Notes imported successfully!");
-                        } catch (e) {
-                            alert("Invalid JSON data.");
-                        }
-                    }
-                }}
-            >
-                <span class="material-icons text-xs">upload</span>
-            </button>
-        </div>    
-        <div class="flex justify-start m-1">
-            <button
-                class="flex space-x-1 justify-start items-center px-1 py-1 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors text-xs pl-2 pr-2"
-                on:click={async () => {
-                    saveNotes()
-
-                    try {
-                        const api = localStorage.getItem("nootoCloudAPI");
-                        if (api) {
-                            const url = api.split('?');
-                            const saveCloud = await fetch(url[0] + 'push' + `?${url[1]}`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                },
-                                body: JSON.stringify(notes)
-                            });
-                            if (saveCloud.ok) {
-                                alert("Notes saved to cloud successfully!");
+                            const api = localStorage.getItem("nootoCloudAPI");
+                            if (api) {
+                                const url = api.split('?');
+                                const saveCloud = await fetch(url[0] + 'push' + `?${url[1]}`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify(notes)
+                                });
+                                if (saveCloud.ok) {
+                                    alert("Notes saved to cloud successfully!");
+                                }
                             }
+                        } catch (e_) {
+                            alert("Failed to save to cloud.");
                         }
-                    } catch (e_) {
-                        alert("Failed to save to cloud.");
-                    }
-                }}
-            >
-                <span class="material-icons text-xs">save</span>
-            </button>
-        </div>   
-        <div class="flex justify-start m-1">
-            <button
-            class="flex space-x-1 justify-start items-center px-1 py-1 bg-lime-500 text-white rounded hover:bg-lime-600 transition-colors text-xs pl-2 pr-2"
-            on:click={() => {
-                localStorage.setItem("nootoCloudAPI", prompt("Enter Nooto Cloud API URL:\n(Leave empty and press OK to disable cloud if its enabled.)", localStorage.getItem("nootoCloudAPI") ?? "https://example.nooto.cloud.api/?key=nooto") ?? (localStorage.getItem("nootoCloudAPI") ?? ""));
-                if (localStorage.getItem("nootoCloudAPI") === "") {
-                    localStorage.removeItem("nootoCloudAPI");
-                    cloudStatus = "";
-                } else cloudStatus = "animate-pulse";
-            }}
-            >
-            <span key={cloudStatus} class="material-icons text-xs {cloudStatus}">cloud</span>
-            </button>
-        </div>
-        <div class="flex justify-start m-1">
-            <button
-                class="flex space-x-1 justify-start items-center px-1 py-1 bg-gray-800 text-white rounded hover:bg-gray-900 dark:bg-gray-600 dark:hover:hover:bg-gray-700 transition-colors text-xs pl-2 pr-2"
+                    }}
+                >
+                    <span class="material-icons text-xs">save</span>
+                </button>
+            </div>   
+            <div class="flex justify-start m-1">
+                <button
+                class="flex space-x-1 justify-start items-center px-1 py-1 bg-lime-500 text-white rounded hover:bg-lime-600 transition-colors text-xs pl-2 pr-2"
                 on:click={() => {
-                    document.documentElement.classList.toggle('dark');
-                    localStorage.setItem("dark", document.documentElement.classList.contains('dark') ? 'true' : 'false');
+                    localStorage.setItem("nootoCloudAPI", prompt("Enter Nooto Cloud API URL:\n(Leave empty and press OK to disable cloud if its enabled.)", localStorage.getItem("nootoCloudAPI") ?? "https://example.nooto.cloud.api/?key=nooto") ?? (localStorage.getItem("nootoCloudAPI") ?? ""));
+                    if (localStorage.getItem("nootoCloudAPI") === "") {
+                        localStorage.removeItem("nootoCloudAPI");
+                        cloudStatus = "";
+                    } else cloudStatus = "animate-pulse";
                 }}
-            >
-                <span class="material-icons text-xs">dark_mode</span>
-            </button>
-        </div>
-        <div class="flex justify-start m-1">
-            <button
-                class="flex space-x-1 justify-start items-center px-1 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors text-xs pl-2 pr-2"
-                on:click={() => {
-                    multipleNotes = !multipleNotes;
-                    if (browser) {
-                        localStorage.setItem("multipleNotes", multipleNotes ? "true" : "false");
-                    }
-                }}
-            >
-                <span class="material-icons text-xs">burst_mode</span>
-                <span class="text-xs">{multipleNotes ? 'Disable' : 'Enable'}</span>
-            </button>
+                >
+                <span key={cloudStatus} class="material-icons text-xs {cloudStatus}">cloud</span>
+                </button>
+            </div>
+            <div class="flex justify-start m-1">
+                <button
+                    class="flex space-x-1 justify-start items-center px-1 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-xs pl-2 pr-2"
+                    on:click={() => {
+                        expandUI = !expandUI;
+                        updateHeights();
+                        if (browser) {
+                            localStorage.setItem("expandUI", expandUI ? "true" : "false");
+                        }
+                    }}
+                >
+                    <span class="material-icons text-xs">auto_awesome_mosaic</span>
+                </button>
+            </div>
+            <div class="flex justify-start m-1">
+                <button
+                    class="flex space-x-1 justify-start items-center px-1 py-1 bg-gray-800 text-white rounded hover:bg-gray-900 dark:bg-gray-600 dark:hover:hover:bg-gray-700 transition-colors text-xs pl-2 pr-2"
+                    on:click={() => {
+                        document.documentElement.classList.toggle('dark');
+                        localStorage.setItem("dark", document.documentElement.classList.contains('dark') ? 'true' : 'false');
+                    }}
+                >
+                    <span class="material-icons text-xs">dark_mode</span>
+                </button>
+            </div>
+            <div class="flex justify-start m-1">
+                <button
+                    class="flex space-x-1 justify-start items-center px-1 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors text-xs pl-2 pr-2"
+                    on:click={() => {
+                        multipleNotes = !multipleNotes;
+                        if (browser) {
+                            localStorage.setItem("multipleNotes", multipleNotes ? "true" : "false");
+                        }
+                    }}
+                >
+                    <span class="material-icons text-xs">burst_mode</span>
+                    <span class="text-xs">{multipleNotes ? 'ON' : 'OFF'}</span>
+                </button>
+            </div>
         </div>
     </div>
 </div>
