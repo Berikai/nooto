@@ -4,15 +4,24 @@ is a minimal note-taking app
 
 <img src="image.png" width="369" alt="nooto">
 
-I want to keep small notes in a fast, simple and efficent way to study Japanese. Existing solutions are overkill for me, so I wanted to make my own note taking app.
+I want to keep small notes in a fast, simple and efficient way to study Japanese. Existing solutions are overkill for me, so I wanted to make my own note taking app.
 
-> Code is really messy and needs refactoring!
+## Features
+
+- **Ultra-Minimal Floating Layout**: Compact side-by-side (or stacked) floating note cards and directory widget with Light & Dark mode.
+- **Direct Inline Editing**: Click any note title or content to edit Markdown directly, with automatic local saving.
+- **Drag & Drop Organization**: Reorder notebooks, groups, and notes via drag and drop (including moving notes across groups and groups across notebooks) or up/down buttons.
+- **Japanese & Furigana Support**: Type `{開|あ}ける` or `{図書館|としょかん}` in Markdown to render `<ruby>` furigana automatically.
+- **Interactive Checklists**: Click `- [ ]` task checkboxes directly in rendered notes to toggle them.
+- **Keyboard Navigation & Multi Mode**: Flip between notes in a group using `←` / `→`, or enable **Multi** mode to view multiple cards at once.
+- **Cloud Sync & JSON Backup**: Edit/copy/export JSON backups or connect a Nooto Cloud API endpoint for push/pull sync.
 
 ## TODO
 
-- [ ] Refactor code
+- [x] Refactor code to Svelte 5
 - [x] Add cloud-save integration
-- [ ] Improve Dark Mode
+- [x] Improve Dark Mode
+- [x] Add drag-and-drop & keyboard navigation (`←` / `→`)
 
 ---
 ---

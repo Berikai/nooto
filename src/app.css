@@ -2,21 +2,93 @@
 @plugin '@tailwindcss/typography';
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+	--font-sans: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+	--font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html {
+	font-family: var(--font-sans);
+}
+
+/* Subtle minimal scrollbars */
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+::-webkit-scrollbar-thumb {
+	background: rgba(161, 161, 170, 0.35);
+	border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+	background: rgba(161, 161, 170, 0.55);
+}
+
+/* Prose / Markdown inheritance */
 .prose {
-    --tw-prose-body: inherit;
-    --tw-prose-headings: inherit;
-    --tw-prose-lead: inherit;
-    --tw-prose-links: inherit;
-    --tw-prose-bold: inherit;
-    --tw-prose-counters: inherit;
-    --tw-prose-bullets: inherit;
-    --tw-prose-hr: inherit;
-    --tw-prose-quotes: inherit;
-    --tw-prose-quote-borders: inherit;
-    --tw-prose-captions: inherit;
-    --tw-prose-code: inherit;
-    --tw-prose-pre-code: inherit;
-    --tw-prose-pre-bg: inherit;
-    --tw-prose-th-borders: inherit;
-    --tw-prose-td-borders: inherit;
+	--tw-prose-body: inherit;
+	--tw-prose-headings: inherit;
+	--tw-prose-lead: inherit;
+	--tw-prose-links: #2563eb;
+	--tw-prose-bold: inherit;
+	--tw-prose-counters: inherit;
+	--tw-prose-bullets: inherit;
+	--tw-prose-hr: #e4e4e7;
+	--tw-prose-quotes: inherit;
+	--tw-prose-quote-borders: #d4d4d8;
+	--tw-prose-captions: inherit;
+	--tw-prose-code: inherit;
+	--tw-prose-pre-code: #f4f4f5;
+	--tw-prose-pre-bg: #18181b;
+	--tw-prose-th-borders: #e4e4e7;
+	--tw-prose-td-borders: #e4e4e7;
+}
+
+.dark .prose {
+	--tw-prose-links: #60a5fa;
+	--tw-prose-hr: #27272a;
+	--tw-prose-quote-borders: #3f3f46;
+	--tw-prose-pre-bg: #09090b;
+	--tw-prose-th-borders: #27272a;
+	--tw-prose-td-borders: #27272a;
+}
+
+/* Furigana (<ruby>) support */
+.prose ruby,
+ruby {
+	ruby-align: center;
+}
+.prose rt,
+rt {
+	font-size: 0.65em;
+	opacity: 0.8;
+}
+
+/* Interactive checkboxes in rendered markdown */
+.prose input[type='checkbox'].nooto-task-checkbox {
+	cursor: pointer;
+	accent-color: #18181b;
+	width: 0.95rem;
+	height: 0.95rem;
+	margin-right: 0.35rem;
+	vertical-align: middle;
+}
+.dark .prose input[type='checkbox'].nooto-task-checkbox {
+	accent-color: #f4f4f5;
+}
+
+/* Dark mode fix for pasted inline black text from web clippings */
+.dark .prose [style*='color:#000000'],
+.dark .prose [style*='color: #000000'],
+.dark .prose [style*='color:#404040'],
+.dark .prose [style*='color: #404040'],
+.dark .prose .text-gray-900 {
+	color: #f4f4f5 !important;
+}
+.dark .prose .bg-gray-200 {
+	background-color: #27272a !important;
+	color: #f4f4f5 !important;
 }
