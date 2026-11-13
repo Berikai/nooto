@@ -1652,7 +1652,7 @@
 
 		<!-- Self-Explanatory Labeled Bottom Bar -->
 		<div
-			class="flex flex-row items-center justify-between bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xs w-full p-2 mt-3 gap-1.5"
+			class="flex flex-row flex-wrap items-center justify-between bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xs w-full p-2 mt-3 gap-1.5"
 		>
 			<!-- Left: Add Notebook + Data & Cloud Sync Controls -->
 			<div class="flex items-center gap-1">
@@ -1669,20 +1669,20 @@
 					<button
 						type="button"
 						onclick={handleCloudPush}
-						class="inline-flex items-center gap-1 h-8 px-2 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-200 transition-colors cursor-pointer"
-						title="Save & Push to Cloud"
+						class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-emerald-500 transition-colors cursor-pointer shrink-0"
+						title="Push to Cloud"
+						aria-label="Push to Cloud"
 					>
-						<CloudUpload class="w-3.5 h-3.5 text-emerald-500" />
-						<span>Push</span>
+						<CloudUpload class="w-4 h-4" />
 					</button>
 					<button
 						type="button"
 						onclick={handleCloudPull}
-						class="inline-flex items-center gap-1 h-8 px-2 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-200 transition-colors cursor-pointer"
+						class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-blue-500 transition-colors cursor-pointer shrink-0"
 						title="Pull from Cloud"
+						aria-label="Pull from Cloud"
 					>
-						<CloudDownload class="w-3.5 h-3.5 text-blue-500" />
-						<span>Pull</span>
+						<CloudDownload class="w-4 h-4" />
 					</button>
 					<button
 						type="button"
